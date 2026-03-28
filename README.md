@@ -91,7 +91,7 @@ For a given `--output <STEM>`, the tool writes two files:
 - `<STEM>.c` — source file with function definitions
 
 ## Workflow examples
-In order to show how to use the tool, one can follow these examples. All of the required files can be found in the examples folder. `extraction.v` contains the required Rocq code for both examples.
+In order to show how to use the tool, one can follow these examples. All of the required files can be found in the examples folder. `extraction.v` contains the required Rocq code for both examples (right now it uses CertiCoq commands instead of CertiRocq but if replaced, they should work the same).
 
 ### Modular arithmetic example
 
