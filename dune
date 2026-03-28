@@ -1,0 +1,32 @@
+; Rule to build the Rust library using Cargo
+(rule
+ (targets libcapla_extractor.a dllcapla_extractor.so) ; Or .dylib on macOS for the .so
+ (deps (source_tree src) Cargo.toml) ; Depends on Rust source and the Cargo.toml file
+ (action
+  (no-infer
+   (progn
+    ;; macOS requires these flags because undefined symbols are not allowed by default
+    (run sh -c "
+        if [ \"$(uname -s)\" = \"Darwin\" ]; then
+          export RUSTFLAGS='-C link-args=-Wl,-undefined,dynamic_lookup'
+        fi
+        cargo build --release --lib --offline
+      ")
+    (run sh -c ; Copy shared library, handling .so or .dylib
+      "cp target/release/libcapla_extractor.so ./dllcapla_extractor.so 2> /dev/null || \
+       cp target/release/libcapla_extractor.dylib ./dllcapla_extractor.so")
+    (run cp target/release/libcapla_extractor.a ./libcapla_extractor.a)
+   ))))
+
+; OCaml library stanza that makes the Rust static library available to OCaml
+(library
+ (name capla_extractor) ; The name OCaml executables will refer to.
+                          ; Matches the Rust crate name for consistency.
+ (public_name rocq_capla_extractor.capla_extractor)
+ (modes native)
+ (foreign_archives capla_extractor) ; Base name of the static library (lib<name>.a)
+ (c_library_flags
+   (:standard
+    -lpthread -ldl
+    -Wl,--whole-archive -lcapla_extractor -Wl,--no-whole-archive))
+)
