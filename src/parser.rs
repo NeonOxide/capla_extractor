@@ -1,5 +1,6 @@
 use chumsky::prelude::*;
 use chumsky::text::int;
+use std::collections::HashSet;
 use std::fmt::Display;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -106,18 +107,14 @@ pub struct FunctionSignature {
 
 #[derive(Debug, Clone)]
 pub enum ValidatedParam {
-    /// A regular parameter that maps to a Rocq value.
     RocqParam(Param),
-    /// A parameter that exists only to carry the length of an input string.
-    /// `name` is this parameter's own name; `string_param_name` is the name of
-    /// the input string parameter whose length it represents.
     StringLengthParam {
         name: String,
         string_param_name: String,
     },
-    /// A `mut [u8; ...]` parameter used to return a string. The actual string
-    /// length / return semantics live in `ValidatedReturn::StringReturn`.
-    StringOutputParam { name: String },
+    StringOutputParam {
+        name: String,
+    },
 }
 impl ValidatedParam {
     pub fn into_capla(&self) -> String {
@@ -234,7 +231,7 @@ impl FunctionSignature {
     /// return `None` if it is malformed.
     ///
     /// The rules:
-    ///   * Every input string `[u8; L]` must reference a parameter `L` that
+    ///   * Every input string `[u8; L]` must reference a unique parameter `L` of type U64 that
     ///     exists in the signature.
     ///   * Every `mut [u8; L]` with a variable length must likewise reference
     ///     an existing parameter.
@@ -250,12 +247,29 @@ impl FunctionSignature {
     ///   * A `mut [u8; ...]` param becomes `StringOutputParam`.
     ///   * Everything else is a `RocqParam`.
     pub fn validate(self) -> Option<ValidatedFunctionSignature> {
-        // Every length-by-name reference must resolve to a real parameter.
+        // Every length-by-name reference must resolve to a unique real parameter.
+        let mut used_input_length_params = HashSet::new();
         for param in &self.params {
-            if let CaplaType::U8Array { len }
-            | CaplaType::MutU8Array(MutStringLength::VarName(len)) = &param.ty
-            {
-                if !self.params.iter().any(|p| p.name == *len) {
+            if let CaplaType::U8Array { len } = &param.ty {
+                if !self
+                    .params
+                    .iter()
+                    .any(|p| p.name == *len && p.ty == CaplaType::U64)
+                {
+                    return None;
+                }
+
+                if !used_input_length_params.insert(len) {
+                    return None;
+                }
+            }
+
+            if let CaplaType::MutU8Array(MutStringLength::VarName(len)) = &param.ty {
+                if !self
+                    .params
+                    .iter()
+                    .any(|p| p.name == *len && p.ty == CaplaType::U64)
+                {
                     return None;
                 }
             }

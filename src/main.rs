@@ -93,8 +93,8 @@ fn run_non_interactive(
     let mut selections: Vec<SelectedFunction> = Vec::new();
 
     for path in &files {
-        let src = std::fs::read_to_string(path)
-            .with_context(|| format!("Cannot read {:?}", path))?;
+        let src =
+            std::fs::read_to_string(path).with_context(|| format!("Cannot read {:?}", path))?;
 
         for sig in parse_b_file(&src) {
             let export_name = if prefix.is_empty() {
@@ -107,7 +107,7 @@ fn run_non_interactive(
     }
 
     if selections.is_empty() {
-        eprintln!("No function signatures found in the provided files.");
+        eprintln!("No valid function signatures found in the provided files.");
         std::process::exit(1);
     }
 
@@ -131,5 +131,3 @@ fn run_non_interactive(
 
     Ok(())
 }
-
-
