@@ -1,6 +1,6 @@
 # capla extractor
 
-A command-line tool that parses Capla files and emits `.c`/`.h` files for use with CertiRocq. Right now it is only able to extract functions taking and returning either u64s or f64s (or a mix of them), which are the primitive types supported by CertiRocq.
+A command-line tool that parses Capla files and emits `.c`/`.h` files for use with CertiRocq. Right now it is only able to extract functions taking and returning either u64s, i64s, [u8;len]s(with some caveats) or f64s (or a mix of them), which are the primitive types supported by CertiRocq.
 
 ## Building
 
