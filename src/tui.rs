@@ -1,8 +1,4 @@
-use std::{
-    collections::{HashSet},
-    io,
-    path::PathBuf,
-};
+use std::{collections::HashSet, io, path::PathBuf};
 
 use anyhow::Result;
 use crossterm::{
@@ -15,17 +11,15 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{
-        Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap,
-    },
+    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
     Frame, Terminal,
 };
 
+use crate::parser::{ValidatedFunctionSignature, ValidatedReturn};
 use crate::{
     codegen::{generate, SelectedFunction},
-    parser::{parse_b_file, FunctionSignature},
+    parser::parse_b_file,
 };
-
 
 const C_ACCENT: Color = Color::Cyan;
 const C_SELECTED: Color = Color::Yellow;
@@ -33,7 +27,6 @@ const C_DIM: Color = Color::DarkGray;
 const C_OK: Color = Color::Green;
 const C_ERR: Color = Color::Red;
 const C_WARN: Color = Color::LightYellow;
-
 
 #[derive(Debug, Clone, PartialEq)]
 enum Screen {
@@ -54,7 +47,7 @@ struct FilePicker {
 
 struct FunctionEntry {
     file: PathBuf,
-    sig: FunctionSignature,
+    sig: ValidatedFunctionSignature,
     selected: bool,
     export_name: String,
     renamed: bool,
@@ -105,7 +98,6 @@ impl App {
     }
 
     pub fn handle_key(&mut self, key: KeyCode, modifiers: KeyModifiers) {
-
         if key == KeyCode::Char('q') && modifiers == KeyModifiers::CONTROL {
             self.screen = Screen::Done;
             return;
@@ -160,7 +152,6 @@ impl App {
                 self.screen = Screen::Prefix;
             }
             KeyCode::Char('a') => {
-
                 if fp.selected.len() == fp.files.len() {
                     fp.selected.clear();
                 } else {
@@ -170,7 +161,6 @@ impl App {
             _ => {}
         }
     }
-
 
     fn handle_prefix(&mut self, key: KeyCode) {
         match key {
@@ -301,11 +291,8 @@ impl App {
                 self.status.clear();
             }
             KeyCode::Char('a') => {
-                let all_renamed_selected = fp
-                    .entries
-                    .iter()
-                    .filter(|e| e.renamed)
-                    .all(|e| e.selected);
+                let all_renamed_selected =
+                    fp.entries.iter().filter(|e| e.renamed).all(|e| e.selected);
 
                 let unrenamed: Vec<&str> = fp
                     .entries
@@ -368,8 +355,7 @@ impl App {
                         self.status = "Name cannot be empty.".to_string();
                     } else if self.fn_picker.entries[i].sig.name == name {
                         self.status = "Name needs to be different.".to_string();
-                    }
-                    else {
+                    } else {
                         self.fn_picker.entries[i].export_name = name;
                         self.fn_picker.entries[i].renamed = true;
                         self.rename_idx = None;
@@ -452,10 +438,7 @@ impl App {
             std::fs::write(&c_path, &files.source),
         ) {
             (Ok(()), Ok(())) => {
-                self.status = format!(
-                    "Generated {:?} and {:?}",
-                    h_path, c_path
-                );
+                self.status = format!("Generated {:?} and {:?}", h_path, c_path);
             }
             (Err(e), _) | (_, Err(e)) => {
                 self.status = format!("Write error: {}", e);
@@ -466,8 +449,6 @@ impl App {
     pub fn is_done(&self) -> bool {
         self.screen == Screen::Done
     }
-
-
 
     pub fn render(&mut self, frame: &mut Frame) {
         match self.screen.clone() {
@@ -493,7 +474,11 @@ impl App {
     }
 
     fn render_status(&self, frame: &mut Frame, area: ratatui::layout::Rect) {
-        let style = if self.status.contains("Error") || self.status.contains("cannot") || self.status.contains("must") || self.status.contains("need") {
+        let style = if self.status.contains("Error")
+            || self.status.contains("cannot")
+            || self.status.contains("must")
+            || self.status.contains("need")
+        {
             Style::default().fg(C_ERR)
         } else if self.status.contains("applied") {
             Style::default().fg(C_OK)
@@ -538,16 +523,11 @@ impl App {
                     .borders(Borders::ALL)
                     .border_style(Style::default().fg(C_ACCENT)),
             )
-            .highlight_style(
-                Style::default()
-                    .fg(C_SELECTED)
-                    .add_modifier(Modifier::BOLD),
-            )
+            .highlight_style(Style::default().fg(C_SELECTED).add_modifier(Modifier::BOLD))
             .highlight_symbol("▶ ");
 
         frame.render_stateful_widget(list, main, &mut self.file_picker.list_state);
     }
-
 
     fn render_prefix(&mut self, frame: &mut Frame) {
         let (main, status_area) = Self::base_layout(frame);
@@ -584,10 +564,7 @@ impl App {
              Preview:\n\
              {}{}\n\
              [Enter=apply  Esc=back to file picker]",
-            fn_count,
-            self.prefix_buf,
-            preview_lines,
-            ellipsis,
+            fn_count, self.prefix_buf, preview_lines, ellipsis,
         );
 
         let p = Paragraph::new(text)
@@ -610,7 +587,6 @@ impl App {
             .entries
             .iter()
             .map(|e| {
-
                 let check = if e.selected {
                     Span::styled("[✓] ", Style::default().fg(C_OK))
                 } else {
@@ -632,12 +608,8 @@ impl App {
                     },
                 );
                 let alias = if e.export_name != e.sig.name {
-                    Span::styled(
-                        format!(" → {}", e.export_name),
-                        Style::default().fg(C_OK),
-                    )
+                    Span::styled(format!(" → {}", e.export_name), Style::default().fg(C_OK))
                 } else if !e.renamed {
-
                     Span::styled(
                         " ⚠ needs rename",
                         Style::default().fg(C_ERR).add_modifier(Modifier::BOLD),
@@ -656,7 +628,8 @@ impl App {
                 unread_count
             )
         } else {
-            " ƒ  Select functions  [Space=toggle  r=rename  p=prefix  a=all  Enter=next  Esc=back] ".to_string()
+            " ƒ  Select functions  [Space=toggle  r=rename  p=prefix  a=all  Enter=next  Esc=back] "
+                .to_string()
         };
 
         let list = List::new(items)
@@ -670,11 +643,7 @@ impl App {
                         Style::default().fg(C_ACCENT)
                     }),
             )
-            .highlight_style(
-                Style::default()
-                    .fg(C_SELECTED)
-                    .add_modifier(Modifier::BOLD),
-            )
+            .highlight_style(Style::default().fg(C_SELECTED).add_modifier(Modifier::BOLD))
             .highlight_symbol("▶ ");
 
         frame.render_stateful_widget(list, main, &mut self.fn_picker.list_state);
@@ -725,8 +694,12 @@ impl App {
         let (main, status_area) = Self::base_layout(frame);
         self.render_status(frame, status_area);
 
-        let selected: Vec<&FunctionEntry> =
-            self.fn_picker.entries.iter().filter(|e| e.selected).collect();
+        let selected: Vec<&FunctionEntry> = self
+            .fn_picker
+            .entries
+            .iter()
+            .filter(|e| e.selected)
+            .collect();
 
         let mut lines: Vec<Line> = vec![
             Line::from(Span::styled(
@@ -736,7 +709,9 @@ impl App {
             Line::from(""),
             Line::from(Span::styled(
                 "Functions to export:",
-                Style::default().fg(Color::White).add_modifier(Modifier::UNDERLINED),
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::UNDERLINED),
             )),
         ];
 
@@ -774,42 +749,36 @@ impl App {
             "✅  Done!\n\n{}\n\nPress any key or Ctrl+q to exit.",
             self.status
         ))
-            .block(
-                Block::default()
-                    .title(" b_extractor ")
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(C_OK)),
-            )
-            .alignment(Alignment::Center)
-            .wrap(Wrap { trim: false });
+        .block(
+            Block::default()
+                .title(" b_extractor ")
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(C_OK)),
+        )
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: false });
         frame.render_widget(p, frame.area());
     }
 }
 
-
-
-fn format_sig_short(sig: &FunctionSignature) -> String {
+pub fn format_sig_short(sig: &ValidatedFunctionSignature) -> String {
     let params = sig
-        .params
+        .original_params
         .iter()
-        .map(|p| {
-            format!(
-                "{}: {}",
-                p.name,
-                if p.ty == crate::parser::CaplaType::U64 { "u64" } else { "f64" }
-            )
-        })
+        .map(|p| format!("{}: {}", p.name, p.ty))
         .collect::<Vec<_>>()
         .join(", ");
-    let ret = if sig.return_type == crate::parser::CaplaType::U64 { "u64" } else { "f64" };
-    format!("fun {}({}) -> {}", sig.name, params, ret)
+    match &sig.return_type {
+        ValidatedReturn::StringReturn(_) => {
+            format!("fun {}({})", sig.name, params)
+        }
+        ValidatedReturn::Numeric(ret) => {
+            format!("fun {}({}) -> {}", sig.name, params, ret)
+        }
+    }
 }
 
-fn centered_rect(
-    percent_x: u16,
-    height: u16,
-    r: ratatui::layout::Rect,
-) -> ratatui::layout::Rect {
+fn centered_rect(percent_x: u16, height: u16, r: ratatui::layout::Rect) -> ratatui::layout::Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
